@@ -17,5 +17,6 @@
     <color name="sad_blue">#2196F3</color>
     <color name="happy_pink">#FF4081</color>
     <color name="calendar_selection">#2196F3</color>
+    <color name="background">#CC40C4FF</color>
 
 </resources>
