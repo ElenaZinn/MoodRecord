@@ -1,11 +1,17 @@
 package com.example.emorecord
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateInterpolator
+import android.widget.ImageView
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.activityViewModels
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
@@ -14,6 +20,7 @@ import com.example.emorecord.R
 import com.example.emorecord.databinding.FragmentMoodBinding
 import com.example.emorecord.viewmodel.MoodViewModel
 import kotlinx.coroutines.launch
+import java.util.Random
 
 // MoodFragment.kt
 class MoodFragment : Fragment() {
@@ -47,6 +54,7 @@ class MoodFragment : Fragment() {
             val progress = (sad.toFloat() / total * 100).toInt()
             binding.progressBar.progress = progress
         }
+        showMoodDetails(showSad = sad == happy)
     }
 
     private fun animateEmoji(view: View) {
@@ -111,5 +119,21 @@ class MoodFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         viewModel.checkAndResetIfNeeded()
+    }
+
+    private fun showMoodDetails(showSad: Boolean? = false, showHappy: Boolean? = false) {
+
+        binding.apply {
+            if (showSad == true) {
+                // Start raining animation
+                rainView.startRaining(showSad = showSad)
+            }
+
+            if (showHappy == true) {
+                // Start raining animation
+                rainView.startRaining(showHappy = showHappy)
+            }
+
+        }
     }
 }

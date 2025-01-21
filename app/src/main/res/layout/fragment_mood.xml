@@ -17,6 +17,21 @@
         android:layout_height="match_parent"
         android:background="@color/background">
 
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:elevation="5dp">
+
+            <!-- Your existing layout -->
+
+            <com.example.emorecord.view.RainEmojisView
+                android:id="@+id/rainView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+
+        </FrameLayout>
+
+
         <com.example.emorecord.view.CustomProgressBar
             android:id="@+id/progressBar"
             android:layout_width="match_parent"
