@@ -6,7 +6,6 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.activityViewModels
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
@@ -34,6 +33,7 @@ class MoodFragment : Fragment() {
         )
         binding.lifecycleOwner = viewLifecycleOwner
         binding.viewModel = viewModel
+        binding.fragment = this  // 添加这行以支持布局中的点击事件
         setupObservers()
         return binding.root
     }
@@ -44,7 +44,7 @@ class MoodFragment : Fragment() {
         val sad = viewModel.sadCount.value ?: 0
         val total = happy + sad
         if (total > 0) {
-            val progress = (happy.toFloat() / total * 100).toInt()
+            val progress = (sad.toFloat() / total * 100).toInt()
             binding.progressBar.progress = progress
         }
     }
@@ -77,8 +77,23 @@ class MoodFragment : Fragment() {
 
     private fun setupObservers() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.progressPercent.collect { progress ->
-                animateProgressBar(binding.progressBar.progress, progress)
+            // 收集 happyCount 变化
+            launch {
+                viewModel.happyCount.collect {
+                    updateProgress()
+                }
+            }
+            // 收集 sadCount 变化
+            launch {
+                viewModel.sadCount.collect {
+                    updateProgress()
+                }
+            }
+            // 收集 progressPercent 变化
+            launch {
+                viewModel.progressPercent.collect { progress ->
+                    animateProgressBar(binding.progressBar.progress, progress)
+                }
             }
         }
     }

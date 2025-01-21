@@ -8,6 +8,8 @@ import com.example.emorecord.Statistics
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.math.ln
+import kotlin.math.pow
 
 class MoodViewModel : ViewModel() {
     private val _sadCount = MutableStateFlow(0)
@@ -56,9 +58,21 @@ class MoodViewModel : ViewModel() {
     }
 
     private fun updateProgress() {
-        val total = (_sadCount.value ?: 0) + (_happyCount.value ?: 0)
+        val happy = _happyCount.value
+        val sad = _sadCount.value
+        val total = happy + sad
+
         if (total > 0) {
-            _progressPercent.value = (_happyCount.value ?: 0) * 100 / total
+            // 使用对数比例计算
+            val happyLog = ln(happy.toDouble() + 1)
+            val sadLog = ln(sad.toDouble() + 1)
+            val totalLog = happyLog + sadLog
+
+            _progressPercent.value = if (totalLog > 0) {
+                (sadLog / totalLog * 100).toInt()
+            } else {
+                50
+            }
         }
     }
 

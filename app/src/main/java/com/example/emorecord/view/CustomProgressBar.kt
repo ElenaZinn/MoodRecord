@@ -16,8 +16,8 @@ class CustomProgressBar @JvmOverloads constructor(
 ) : ProgressBar(context, attrs, defStyleAttr) {
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val sadColor = ContextCompat.getColor(context, R.color.sad_blue)
-    private val happyColor = ContextCompat.getColor(context, R.color.happy_pink)
+    private val sadColor = ContextCompat.getColor(context, R.color.sad_blue_light)
+    private val happyColor = ContextCompat.getColor(context, R.color.happy_pink_light)
 
     override fun onDraw(canvas: Canvas) {
         val width = width.toFloat()
