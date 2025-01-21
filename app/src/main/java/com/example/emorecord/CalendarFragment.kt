@@ -10,12 +10,14 @@ import android.widget.CalendarView
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.lifecycleScope
 import com.example.emorecord.databinding.FragmentCalendarBinding
 import com.example.emorecord.utils.ViewModelFactory
 import com.example.emorecord.viewmodel.CalendarViewModel
+import com.example.emorecord.viewmodel.MoodViewModel
 import com.google.android.material.snackbar.Snackbar
 import com.prolificinteractive.materialcalendarview.DayViewDecorator
 import com.prolificinteractive.materialcalendarview.DayViewFacade
@@ -24,7 +26,11 @@ import kotlinx.coroutines.launch
 import org.threeten.bp.LocalDate  // 使用这个导入而不是 java.time.LocalDate
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView
 import com.prolificinteractive.materialcalendarview.CalendarDay
+import org.threeten.bp.format.DateTimeFormatter
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 // CalendarFragment.kt
 class CalendarFragment : Fragment() {
@@ -32,6 +38,8 @@ class CalendarFragment : Fragment() {
     private val viewModel: CalendarViewModel by viewModels {
         ViewModelFactory(requireActivity().application)
     }
+
+    private val moodViewModel: MoodViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -41,6 +49,8 @@ class CalendarFragment : Fragment() {
         binding = FragmentCalendarBinding.inflate(inflater, container, false)
         binding.lifecycleOwner = viewLifecycleOwner
         binding.viewModel = viewModel
+
+
         return binding.root
     }
 
@@ -99,27 +109,43 @@ class CalendarFragment : Fragment() {
 
     private fun showMoodDetails(mood: MoodData?) {
         binding.moodDetailsCard.isVisible = mood != null
+        // 使用本地化的日期格式
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val selectedData = mood?.date?.format(dateFormatter)
+        val (happy, sad) = selectedData?.let { moodViewModel.getMoodForDate(it) } ?: Pair(0, 0)
+
 
         mood?.let {
             binding.apply {
                 // 更新心情统计
-                happyCount.text = getString(R.string.happy_count, it.happyCount)
-                sadCount.text = getString(R.string.sad_count, it.sadCount)
+                happyCount.text = getString(R.string.happy_count,happy)
+                sadCount.text = getString(R.string.sad_count, sad)
 
                 // 计算主导情绪
-                val dominantMood = if (it.happyCount > it.sadCount) {
+                val dominantMood = if (happy > sad) {
                     R.drawable.ic_mood_happy
-                } else if (it.sadCount > it.happyCount) {
+                } else if (sad > happy) {
                     R.drawable.ic_mood_sad
                 } else {
                     R.drawable.ic_mood_neutral
                 }
+
+                val backgroundColor = if (happy > sad) {
+                    ContextCompat.getColor(requireContext(), R.color.happy_pink_20)
+                } else if (sad > happy) {
+                    ContextCompat.getColor(requireContext(), R.color.sad_blue_20)
+                } else {
+                    ContextCompat.getColor(requireContext(), R.color.white)
+                }
+
 
                 // 设置主导情绪图标
                 dominantMoodIcon.setImageResource(dominantMood)
 
                 // 显示动画
                 moodDetailsCard.animateVisible()
+
+                dataDialog.setBackgroundColor(backgroundColor)
             }
         }
     }

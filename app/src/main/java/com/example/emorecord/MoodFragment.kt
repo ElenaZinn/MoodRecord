@@ -107,4 +107,9 @@ class MoodFragment : Fragment() {
         viewModel.onSadClick()
         animateEmoji(emojiView)
     }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.checkAndResetIfNeeded()
+    }
 }

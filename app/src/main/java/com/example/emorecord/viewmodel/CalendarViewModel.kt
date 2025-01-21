@@ -38,7 +38,7 @@ class CalendarViewModel(
         lastLoadedDate = Triple(year, month, day)
         viewModelScope.launch {
             try {
-                val date = LocalDate.of(year, month + 1, day)
+                val date = LocalDate.of(year, month , day)
                 val dateString = formatDate(date)
 
                 // 从SharedPreferences获取数据

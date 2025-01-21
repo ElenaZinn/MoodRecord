@@ -13,11 +13,17 @@ import androidx.lifecycle.lifecycleScope
 import com.example.emorecord.R
 import com.example.emorecord.databinding.FragmentStatisticsBinding
 import com.example.emorecord.viewmodel.MoodViewModel
+import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.Legend
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.PercentFormatter
+import com.github.mikephil.charting.formatter.ValueFormatter
 import kotlinx.coroutines.launch
 
 // StatisticsFragment.kt
@@ -36,8 +42,18 @@ class StatisticsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // 获取所有历史记录
+        val allMoods = moodViewModel.getAllMoods()
+        updateStatistics(allMoods)
         setupPieChart()
         observeStatistics()
+        setupWeeklyChart()
+    }
+
+    private fun updateStatistics(moods: Map<String, Pair<Int, Int>>) {
+        // 处理统计数据
+        val totalHappy = moods.values.sumOf { it.first }
+        val totalSad = moods.values.sumOf { it.second }
     }
 
     private fun setupPieChart() {
@@ -55,6 +71,10 @@ class StatisticsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             moodViewModel.statistics.collect { stats ->
                 updateCharts(stats)
+            }
+
+            moodViewModel.currentStreak.collect { streak ->
+                binding.streakText.text = "连续记录：$streak 天"
             }
         }
     }
@@ -89,6 +109,81 @@ class StatisticsFragment : Fragment() {
         // 更新文本
         binding.streakText.text = "Current streak: ${stats.streakDays} days"
         binding.totalCount.text = "Total records: ${stats.totalCount}"
+    }
+
+    private fun setupWeeklyChart() {
+        binding.weeklyLineChart.apply {
+            description.isEnabled = false
+            legend.isEnabled = true
+            setTouchEnabled(true)
+            setScaleEnabled(false)
+
+            xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                valueFormatter = DayAxisValueFormatter()
+                setDrawGridLines(false)
+            }
+
+            axisLeft.apply {
+                setDrawGridLines(true)
+                axisMinimum = 0f
+            }
+
+            axisRight.isEnabled = false
+
+            // 设置图例
+            legend.apply {
+                orientation = Legend.LegendOrientation.HORIZONTAL
+                horizontalAlignment = Legend.LegendHorizontalAlignment.CENTER
+                verticalAlignment = Legend.LegendVerticalAlignment.BOTTOM
+            }
+        }
+
+        updateWeeklyChart()
+    }
+
+    private fun updateWeeklyChart() {
+        val weeklyData = moodViewModel.getWeeklyMoodData()
+
+        // 创建快乐情绪数据集
+        val happyEntries = weeklyData.mapIndexed { index, pair ->
+            Entry(index.toFloat(), pair.first.toFloat())
+        }
+
+        // 创建悲伤情绪数据集
+        val sadEntries = weeklyData.mapIndexed { index, pair ->
+            Entry(index.toFloat(), pair.second.toFloat())
+        }
+
+        val happyDataSet = LineDataSet(happyEntries, "Happy").apply {
+            color = ContextCompat.getColor(requireContext(), R.color.happy_pink)
+            setCircleColor(ContextCompat.getColor(requireContext(), R.color.happy_pink))
+            lineWidth = 2f
+            circleRadius = 4f
+            setDrawValues(true)
+            mode = LineDataSet.Mode.LINEAR
+        }
+
+        val sadDataSet = LineDataSet(sadEntries, "Sad").apply {
+            color = ContextCompat.getColor(requireContext(), R.color.sad_blue)
+            setCircleColor(ContextCompat.getColor(requireContext(), R.color.sad_blue))
+            lineWidth = 2f
+            circleRadius = 4f
+            setDrawValues(true)
+            mode = LineDataSet.Mode.LINEAR
+        }
+
+        binding.weeklyLineChart.data = LineData(happyDataSet, sadDataSet)
+        binding.weeklyLineChart.invalidate()
+    }
+}
+
+// X轴日期格式化
+class DayAxisValueFormatter : ValueFormatter() {
+    private val days = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+
+    override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+        return days.getOrNull(value.toInt()) ?: ""
     }
 }
 

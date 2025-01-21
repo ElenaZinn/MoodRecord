@@ -1,17 +1,25 @@
 package com.example.emorecord.viewmodel
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.emorecord.Statistics
+import com.example.emorecord.utils.MoodPrefsManager
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.math.ln
-import kotlin.math.pow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
-class MoodViewModel : ViewModel() {
+class MoodViewModel(application: Application) :  AndroidViewModel(application) {
+    private val prefsManager = MoodPrefsManager(application)
+
     private val _sadCount = MutableStateFlow(0)
     val sadCount: StateFlow<Int> = _sadCount.asStateFlow()
 
@@ -24,9 +32,24 @@ class MoodViewModel : ViewModel() {
     private val _statistics = MutableStateFlow(Statistics())
     val statistics: StateFlow<Statistics> = _statistics.asStateFlow()
 
+    private val _currentStreak = MutableStateFlow(0)
+    val currentStreak: StateFlow<Int> = _currentStreak.asStateFlow()
+
+    private var resetJob: Job? = null
+
 
     init {
-        updateStatistics()
+        loadTodayMood()
+        updateStreak()
+        setupDailyReset()
+    }
+
+    private fun loadTodayMood() {
+        val today = getCurrentDate()
+        val (happy, sad) = prefsManager.getMoodCounts(today)
+        _happyCount.value = happy
+        _sadCount.value = sad
+        updateProgress()
     }
 
     private fun updateStatistics() {
@@ -35,26 +58,34 @@ class MoodViewModel : ViewModel() {
             _statistics.value = Statistics(
                 happyPercentage = (_happyCount.value.toFloat() / total) * 100f,
                 sadPercentage = (_sadCount.value.toFloat() / total) * 100f,
-                streakDays = calculateStreak(),
+                streakDays = prefsManager.calculateStreak(),
                 totalCount = total
             )
         }
     }
 
-    private fun calculateStreak(): Int {
-        // TODO: 实现连续记录天数的计算逻辑
-        return 0
-    }
-
 
     fun onSadClick() {
         _sadCount.value = (_sadCount.value ?: 0) + 1
+        saveMood()
         updateProgress()
     }
 
     fun onHappyClick() {
         _happyCount.value = (_happyCount.value ?: 0) + 1
+        saveMood()
         updateProgress()
+    }
+
+    private fun saveMood() {
+        val currentDate = getCurrentDate()
+        prefsManager.saveMoodCounts(
+            date = currentDate,
+            happyCount = _happyCount.value,
+            sadCount = _sadCount.value
+        )
+        prefsManager.saveLastRecordDate(currentDate)
+        updateStreak()
     }
 
     private fun updateProgress() {
@@ -62,18 +93,96 @@ class MoodViewModel : ViewModel() {
         val sad = _sadCount.value
         val total = happy + sad
 
-        if (total > 0) {
-            // 使用对数比例计算
-            val happyLog = ln(happy.toDouble() + 1)
-            val sadLog = ln(sad.toDouble() + 1)
-            val totalLog = happyLog + sadLog
+        _progressPercent.value = if (total > 0) {
+            (sad.toFloat() / total * 100).toInt()
+        } else {
+            50
+        }
+        updateStatistics()
+    }
 
-            _progressPercent.value = if (totalLog > 0) {
-                (sadLog / totalLog * 100).toInt()
-            } else {
-                50
+    fun getMoodForDate(date: String): Pair<Int, Int> {
+        return prefsManager.getMoodCounts(date)
+    }
+
+    fun getAllMoods(): Map<String, Pair<Int, Int>> {
+        return prefsManager.getAllDates().associateWith { date ->
+            prefsManager.getMoodCounts(date)
+        }
+    }
+
+    private fun getCurrentDate(): String {
+        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+    }
+
+    private fun updateStreak() {
+        _currentStreak.value = prefsManager.calculateStreak()
+    }
+
+    private fun setupDailyReset() {
+        resetJob?.cancel()
+        resetJob = viewModelScope.launch {
+            while (isActive) {
+                val now = Calendar.getInstance()
+                val tomorrow = Calendar.getInstance().apply {
+                    add(Calendar.DAY_OF_YEAR, 1)
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                // 计算到明天0点的延迟时间
+                val delayMillis = tomorrow.timeInMillis - now.timeInMillis
+
+                // 等待到明天0点
+                delay(delayMillis)
+
+                // 只重置显示的数据
+                resetDisplayCounts()
             }
         }
     }
+
+    private fun resetDisplayCounts() {
+        _happyCount.value = 0
+        _sadCount.value = 0
+        updateProgress()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        resetJob?.cancel()
+    }
+
+    // 应用进入前台时检查是否需要重置显示数据
+    fun checkAndResetIfNeeded() {
+        val currentDate = getCurrentDate()
+        val lastRecordDate = prefsManager.getLastRecordDate()
+
+        if (currentDate != lastRecordDate) {
+            resetDisplayCounts()
+            prefsManager.saveLastRecordDate(currentDate)
+        }
+    }
+
+    fun getWeeklyMoodData(): List<Pair<Int, Int>> {
+        val calendar = Calendar.getInstance()
+        val today = calendar.time
+        val weekData = mutableListOf<Pair<Int, Int>>()
+
+        // 获取过去7天的数据
+        for (i in 6 downTo 0) {
+            calendar.time = today
+            calendar.add(Calendar.DAY_OF_YEAR, -i)
+
+            val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.time)
+            val (happy, sad) = getMoodForDate(date)
+            weekData.add(Pair(happy, sad))
+        }
+
+        return weekData
+    }
+
 
 }

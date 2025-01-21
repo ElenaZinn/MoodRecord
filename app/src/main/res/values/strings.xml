@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">EmoRecord</string>
+    <string name="app_name">MoodRecord</string>
     <string name="title_mood">情绪记录</string>
     <string name="title_calendar">心情日记</string>
     <string name="title_nfc">NFC</string>

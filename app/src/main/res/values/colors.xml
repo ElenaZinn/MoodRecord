@@ -20,5 +20,7 @@
     <color name="background">#CC40C4FF</color>
     <color name="sad_blue_light">#9F21D4F3</color>
     <color name="happy_pink_light">#E8FFA9B1</color>
+    <color name="sad_blue_20">#CC2196F3</color>
+    <color name="happy_pink_20">#CCFF4081</color>
 
 </resources>
