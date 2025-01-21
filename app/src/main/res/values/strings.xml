@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">EmoRecord</string>
+    <string name="title_mood">情绪记录</string>
+    <string name="title_calendar">心情日记</string>
+    <string name="title_nfc">NFC</string>
+    <string name="title_statistics">统计</string>
+
+    <string name="happy_count">开心: %d</string>
+    <string name="sad_count">难过: %d</string>
+
+    <string name="streak_format">Current streak: %d days</string>
+    <string name="total_count_format">Total records: %d</string>
+    <string name="mood_distribution">Mood Distribution</string>
+    <string name="happy_label">Happy</string>
+    <string name="sad_label">Sad</string>
+
+
+</resources>
